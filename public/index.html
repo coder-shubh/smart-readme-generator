@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart README Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* Reset some basic styles */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 2rem 1rem;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    main {
+      background: #fff;
+      max-width: 700px;
+      width: 100%;
+      padding: 2rem 2.5rem 3rem;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    h1 {
+      text-align: center;
+      color: #222;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      font-size: 2rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: #444;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      transition: border-color 0.3s ease;
+      outline-offset: 2px;
+      outline-color: transparent;
+    }
+
+    input[type="text"]:focus {
+      border-color: #4f8ef7;
+      outline-color: #4f8ef7;
+      background: #f0f5ff;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    button[type="submit"] {
+      background: #4f8ef7;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      align-self: flex-start;
+      box-shadow: 0 6px 12px rgba(79,142,247,0.4);
+      user-select: none;
+    }
+
+    button[type="submit"]:hover,
+    button[type="submit"]:focus {
+      background: #3a6ecc;
+      box-shadow: 0 8px 18px rgba(58,110,204,0.6);
+      outline: none;
+    }
+
+    h2 {
+      font-weight: 700;
+      color: #333;
+      margin-top: 0;
+      border-bottom: 2px solid #4f8ef7;
+      padding-bottom: 0.3rem;
+    }
+
+    #output {
+      background: #fafbfc;
+      padding: 1.5rem 2rem;
+      max-height: 400px;
+      overflow-y: auto;
+      border-radius: 12px;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.04);
+      font-size: 1rem;
+      line-height: 1.5;
+      color: #222;
+      border: 1px solid #e1e4e8;
+      white-space: normal;
+    }
+
+    /* Markdown styles inside output */
+    #output h1, #output h2, #output h3 {
+      margin-top: 1.4rem;
+      margin-bottom: 0.6rem;
+      font-weight: 700;
+      color: #222;
+    }
+
+    #output pre {
+      background: #2d2d2d;
+      color: #ccc;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      font-family: 'Fira Mono', monospace, monospace;
+    }
+
+    #output code {
+      background: #eaeaea;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: 'Fira Mono', monospace, monospace;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    #output a {
+      color: #4f8ef7;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    #output a:hover {
+      text-decoration: underline;
+    }
+
+    /* Buttons container */
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    button#downloadBtn,
+    button#copyBtn {
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 5px 10px rgba(79,142,247,0.3);
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+
+    button#downloadBtn:hover,
+    button#copyBtn:hover,
+    button#downloadBtn:focus,
+    button#copyBtn:focus {
+      background: #3a6ecc;
+      box-shadow: 0 8px 15px rgba(58,110,204,0.5);
+      outline: none;
+    }
+
+    button[style*="display:none"] {
+      display: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      main {
+        padding: 1.5rem 1.5rem 2rem;
+      }
+
+      button[type="submit"], button#downloadBtn, button#copyBtn {
+        width: 100%;
+        text-align: center;
+      }
+
+      .btn-group {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Smart README Generator</h1>
+
+    <form id="generateForm">
+      <label for="inputPath">Project Folder Path or Git Repo URL:</label>
+      <input
+        type="text"
+        id="inputPath"
+        placeholder="e.g. ./my-project or https://github.com/user/repo.git"
+        required
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="submit">Generate README</button>
+    </form>
+
+    <h2>Output:</h2>
+    <div id="output" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="btn-group">
+      <button id="downloadBtn" style="display:none;" aria-label="Download generated README file">Download README.md</button>
+      <button id="copyBtn" style="display:none;" aria-label="Copy generated README to clipboard">Copy to Clipboard</button>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('generateForm');
+    const output = document.getElementById('output');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      output.textContent = 'Generating README...';
+      downloadBtn.style.display = 'none';
+      copyBtn.style.display = 'none';
+
+      const inputPath = document.getElementById('inputPath').value.trim();
+
+      try {
+        const res = await fetch('/generate-readme', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inputPath }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          output.innerHTML = marked.parse(data.readme);
+
+          // Show buttons
+          downloadBtn.style.display = 'inline-block';
+          copyBtn.style.display = 'inline-block';
+
+          downloadBtn.onclick = () => {
+            const blob = new Blob([data.readme], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'README_GENERATED.md';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          };
+
+          copyBtn.onclick = async () => {
+            try {
+              await navigator.clipboard.writeText(data.readme);
+              alert('README copied to clipboard!');
+            } catch {
+              alert('Failed to copy. Please copy manually.');
+            }
+          };
+        } else {
+          output.textContent = `Error: ${data.error}\n${data.details || ''}`;
+        }
+      } catch (err) {
+        output.textContent = 'Error contacting server.';
+      }
+    });
+  </script>
+</body>
+</html>
